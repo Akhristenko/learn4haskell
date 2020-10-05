@@ -640,7 +640,7 @@ Write a function that takes elements of a list only on even positions.
 -}
 takeEven :: [a] -> [a]
 takeEven [] = []
-takeEven (x:[]) = [x]
+takeEven [x] = [x]
 takeEven (x:_:xs) = x : takeEven xs
 
 {- |
@@ -748,7 +748,7 @@ value of the element itself
 🕯 HINT: Use combination of 'map' and 'replicate'
 -}
 smartReplicate :: [Int] -> [Int]
-smartReplicate l = concat $ map (\x -> replicate x x) l
+smartReplicate = concatMap (\x -> replicate x x)
 
 {- |
 =⚔️= Task 9
@@ -762,7 +762,7 @@ the list with only those lists that contain a passed element.
 🕯 HINT: Use the 'elem' function to check whether an element belongs to a list
 -}
 contains :: Eq a => a -> [[a]] -> [[a]]
-contains item list = filter (elem item) list
+contains item = filter (elem item)
 
 
 {- |
@@ -885,8 +885,10 @@ and reverses it.
   cheating!
 -}
 rewind :: [a] -> [a]
-rewind [] = []
-rewind (x: xs) = rewind xs ++ [x]
+rewind = rewind' [] where
+    rewind' :: [a] -> [a] -> [a]
+    rewind' acc [] = acc
+    rewind' acc (x: xs) = rewind' (x:acc) xs
 
 
 {-
