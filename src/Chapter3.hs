@@ -344,6 +344,13 @@ of a book, but you are not limited only by the book properties we described.
 Create your own book type of your dreams!
 -}
 
+data Book = Book
+    { bookName :: String
+    , bookAuthor :: String
+    , bookDescription :: String
+    , bookPages :: Int
+    } deriving (Show)
+
 {- |
 =⚔️= Task 2
 
@@ -373,6 +380,24 @@ after the fight. The battle has the following possible outcomes:
    doesn't earn any money and keeps what they had before.
 
 -}
+
+data Knight = Knight
+    { knightHealth :: Int
+    , knightAttack :: Int
+    , knightGold :: Int
+    } deriving (Show)
+
+data Monster = Monster
+    { monsterHealth :: Int
+    , monsterAttack :: Int
+    , monsterGold :: Int
+    }
+
+fight :: Monster -> Knight -> Int
+fight (Monster mh ma mg) (Knight kh ka kg)
+    | ka > mh = kg + mg
+    | ma > kh = -1
+    | otherwise = kg
 
 {- |
 =🛡= Sum types
@@ -460,6 +485,18 @@ Create a simple enumeration for the meal types (e.g. breakfast). The one who
 comes up with the most number of names wins the challenge. Use your creativity!
 -}
 
+data Breakfast = Breakfast [BreakfastPart]
+
+data BreakfastPart
+    = Coffe
+    | Tea
+    | ScrambledEggsWthBacon
+    | Sandwich
+    | CerealWithMilk
+    | PorridgeWithFruit
+    | Pancake
+    deriving (Show)
+
 {- |
 =⚔️= Task 4
 
@@ -479,6 +516,46 @@ After defining the city, implement the following functions:
    complicated task, walls can be built only if the city has a castle
    and at least 10 living __people__ inside in all houses of the city totally.
 -}
+
+data CultureBuilding = Church | Library deriving (Show)
+
+data House = House HouseCapacity deriving (Show)
+data DefenceBuilding 
+    = OnlyCastle String
+    | CastleWithWall String
+    deriving (Show)
+
+newtype HouseCapacity = HouseCapacity Int deriving (Show)
+mkHouseCapacity :: Int -> Maybe HouseCapacity
+mkHouseCapacity x
+    | x < 0 = Nothing
+    | x > 4 = Nothing
+    | otherwise = Just $ HouseCapacity x
+
+data City = City
+    { defenceBuilding :: Maybe DefenceBuilding
+    , cityCultureBuilding :: CultureBuilding
+    , cityHouses :: [House]
+    } deriving (Show)
+
+buildCastle :: City -> String -> City
+buildCastle city name = case defenceBuilding city of
+    Nothing -> city { defenceBuilding = Just $ OnlyCastle name }
+    Just (OnlyCastle _) -> city { defenceBuilding = Just $ OnlyCastle name }
+    Just (CastleWithWall _) -> city { defenceBuilding = Just $ CastleWithWall name}
+
+buildHouse :: City -> HouseCapacity -> City
+buildHouse city c = city { cityHouses = (House c) : cityHouses city }
+
+buildWalls :: City ->  City
+buildWalls city 
+    | notHaveEnoughPeoples = city 
+    | otherwise = case defenceBuilding city of
+        Nothing -> city
+        Just (OnlyCastle c) -> city { defenceBuilding = Just $ CastleWithWall c}
+        Just (CastleWithWall _) -> city
+  where 
+    notHaveEnoughPeoples = sum (map (\(House (HouseCapacity i)) -> i) $ cityHouses city) <= 10
 
 {-
 =🛡= Newtypes
@@ -560,22 +637,30 @@ introducing extra newtypes.
 🕯 HINT: if you complete this task properly, you don't need to change the
     implementation of the "hitPlayer" function at all!
 -}
+newtype Health = Health Int
+newtype Armor = Armor Int
+newtype Attack = Attack Int
+newtype Dexterity = Dexterity Int
+newtype Strength = Strength Int
+newtype Damage = Damage Int
+newtype Defence = Defence Int
+
 data Player = Player
-    { playerHealth    :: Int
-    , playerArmor     :: Int
-    , playerAttack    :: Int
-    , playerDexterity :: Int
-    , playerStrength  :: Int
+    { playerHealth    :: Health
+    , playerArmor     :: Armor
+    , playerAttack    :: Attack
+    , playerDexterity :: Dexterity
+    , playerStrength  :: Strength
     }
 
-calculatePlayerDamage :: Int -> Int -> Int
-calculatePlayerDamage attack strength = attack + strength
+calculatePlayerDamage :: Attack -> Strength -> Damage
+calculatePlayerDamage (Attack attack) (Strength strength) = Damage $ attack + strength
 
-calculatePlayerDefense :: Int -> Int -> Int
-calculatePlayerDefense armor dexterity = armor * dexterity
+calculatePlayerDefense :: Armor -> Dexterity -> Defence
+calculatePlayerDefense (Armor armor) (Dexterity dexterity) = Defence $ armor * dexterity
 
-calculatePlayerHit :: Int -> Int -> Int -> Int
-calculatePlayerHit damage defense health = health + defense - damage
+calculatePlayerHit :: Damage -> Defence -> Health -> Health
+calculatePlayerHit (Damage damage) (Defence defense) (Health health) = Health $ health + defense - damage
 
 -- The second player hits first player and the new first player is returned
 hitPlayer :: Player -> Player -> Player
@@ -753,6 +838,20 @@ parametrise data types in places where values can be of any general type.
   maybe-treasure ;)
 -}
 
+data TreasureChest x = TreasureChest
+    { treasureChestGold :: Int
+    , treasureChestLoot :: x
+    } deriving (Show)
+
+data Dragon power = Dragon
+    { magicPower :: power
+    } deriving (Show)
+
+data Lair power treasure = Lair
+    { lairDragon :: Dragon power
+    , lairTreasure :: Maybe(TreasureChest treasure)
+    }
+
 {-
 =🛡= Typeclasses
 
@@ -910,6 +1009,19 @@ Implement instances of "Append" for the following types:
 class Append a where
     append :: a -> a -> a
 
+newtype Gold = Gold Int
+
+instance Append Gold where
+    append (Gold a) (Gold b) = Gold $ a + b
+
+instance Append [a] where
+    append = (++) 
+
+instance (Append a) => Append (Maybe a) where
+    append (Just x) (Just y) = Just $ append x y
+    append x@(Just _) _ = x
+    append _ y@(Just _) = y
+    append _ _ = Nothing
 
 {-
 =🛡= Standard Typeclasses and Deriving
@@ -971,6 +1083,24 @@ implement the following functions:
 🕯 HINT: to implement this task, derive some standard typeclasses
 -}
 
+data DayOfWeek
+    = Monday
+    | Tuesday
+    | Wednesday
+    | Thursday
+    | Friday
+    | Saturday
+    | Sunday deriving (Show, Ord, Eq, Enum)
+
+isWeekend :: DayOfWeek -> Bool
+isWeekend = flip elem [Saturday, Sunday]
+
+nextDay :: DayOfWeek -> DayOfWeek
+nextDay day = toEnum $ mod (fromEnum day + 1) 7
+
+daysToParty :: DayOfWeek -> Int
+daysToParty x = mod (fromEnum Friday - fromEnum x) 7
+
 {-
 =💣= Task 9*
 
@@ -1006,6 +1136,139 @@ Implement data types and typeclasses, describing such a battle between two
 contestants, and write a function that decides the outcome of a fight!
 -}
 
+data Interaction
+    = IAttack Int
+
+data Status a
+    = SAlive a
+    | SDead a
+    | SRunAway a
+
+instance (Show a) => Show (Status a) where
+    show (SAlive a) = "Alive, " ++ show a
+    show (SDead a) = "Dead, " ++ show a
+    show (SRunAway a) = "Runaway, " ++ show a
+
+
+
+class Fighter a where
+    prepareInteraction :: Status a -> (Status a, Maybe Interaction)
+    applyInteraction :: Status a -> Maybe Interaction -> Status a
+
+ffight :: (Fighter a, Fighter b) => Status a -> Status b -> (Status a, Status b)
+ffight first second = player1Turn first second where
+    player1Turn :: (Fighter a, Fighter b) => Status a -> Status b -> (Status a, Status b)
+    player1Turn a@(SAlive _) b = let (a', int) = prepareInteraction a in player2React a' b int
+    player1Turn a b = (a, b)
+    
+    player2React :: (Fighter a ,Fighter b) => Status a -> Status b -> Maybe Interaction -> (Status a, Status b)
+    player2React a b@(SAlive _) int = let b' = applyInteraction b int in player2Turn a b'
+    player2React a b _ = (a, b)
+
+    player2Turn :: (Fighter a, Fighter b) => Status a -> Status b -> (Status a, Status b)
+    player2Turn a b@(SAlive _) = let (b', int) = prepareInteraction b in player1React a b' int
+    player2Turn a b = (a, b)
+    
+    player1React :: (Fighter a, Fighter b) => Status a -> Status b -> Maybe Interaction -> (Status a, Status b)
+    player1React a@(SAlive _) b int = let a' = applyInteraction a int in player1Turn a' b
+    player1React a b _ = (a, b)
+
+data FKnight = FKnight
+    { fknightHealth :: Int
+    , fknightAttack :: Int
+    , fknightDefence :: Int
+    , fknightActions :: [FKnightAction]
+    }
+
+instance Show FKnight where
+    show k = "Knight, health: " ++ show (fknightHealth k)
+
+data FKnightAction
+    = FKAttack
+    | FKHeal Int
+    | FKBuffDeff Int deriving (Show)
+
+mkKnight :: Int -> Int -> Int -> [FKnightAction] -> FKnight
+mkKnight health attack defence actions = FKnight health attack defence (cycle actions)
+
+instance Fighter FKnight where
+    prepareInteraction :: Status FKnight -> (Status FKnight, Maybe Interaction)
+    prepareInteraction (SAlive knight) = 
+        applyAction action knight'
+      where
+        applyAction :: FKnightAction -> FKnight -> (Status FKnight, Maybe Interaction)
+        applyAction FKAttack k = (SAlive k, Just $ IAttack $ fknightAttack k)
+        applyAction (FKHeal i) k = (SAlive $ k {fknightHealth = fknightHealth k + i}, Nothing)
+        applyAction (FKBuffDeff i) k = (SAlive $ k {fknightDefence = fknightDefence k + i}, Nothing)
+        
+        getAction :: FKnight -> (FKnightAction, FKnight)
+        getAction k =
+            (head actions, k { fknightActions = (drop 1 actions) })
+          where
+            actions = fknightActions k
+
+        (action, knight') = getAction knight
+    prepareInteraction k = (k, Nothing)
+
+    applyInteraction :: Status FKnight -> Maybe Interaction -> Status FKnight
+    applyInteraction (SAlive knight) (Just interaction) = 
+        applyAction' interaction 
+      where
+        applyAction' :: Interaction -> Status FKnight
+        applyAction' (IAttack i)
+            | newHealth > 0 = SAlive knight { fknightHealth = newHealth }
+            | otherwise = SDead knight { fknightHealth = newHealth }
+          where
+            health = fknightHealth knight
+            def = fknightDefence knight
+            newHealth = health + def - i
+    applyInteraction k _ = k
+
+data FMonster = FMonster
+    { fmonsterHealth :: Int
+    , fmonsterAttack :: Int
+    , fmonsterActions :: [FMonsterAction]
+    }
+
+instance Show FMonster where
+    show k = "Monster, health: " ++ show (fmonsterHealth k)
+
+data FMonsterAction
+    = FMAttack
+    | FMRunAway deriving (Show)
+
+mkMonster :: Int -> Int -> [FMonsterAction] -> FMonster
+mkMonster health attack actions = FMonster health attack (cycle actions)
+
+instance Fighter FMonster where
+    prepareInteraction :: Status FMonster -> (Status FMonster, Maybe Interaction)
+    prepareInteraction (SAlive monster) = 
+        generateInteraction action monster'
+      where
+        getAction :: FMonster -> (FMonsterAction, FMonster)
+        getAction m =
+            (head actions, m { fmonsterActions = (drop 1 actions) })
+          where
+            actions = fmonsterActions m
+            
+        generateInteraction :: FMonsterAction -> FMonster -> (Status FMonster, Maybe Interaction)
+        generateInteraction FMAttack m = (SAlive m, Just $ IAttack $ fmonsterAttack monster)
+        generateInteraction FMRunAway m = (SRunAway m, Nothing)
+
+        (action, monster') = getAction monster
+    prepareInteraction k = (k, Nothing)
+
+    applyInteraction :: Status FMonster -> Maybe Interaction -> Status FMonster
+    applyInteraction (SAlive monster) (Just interaction) =
+        applyInteraction' interaction
+      where
+        applyInteraction' (IAttack i)
+            | newHealth > 0 = SAlive monster { fmonsterHealth = newHealth }
+            | otherwise = SDead monster { fmonsterHealth = newHealth }
+          where
+            health = fmonsterHealth monster
+            newHealth = health - i
+    applyInteraction m _ = m
 
 {-
 You did it! Now it is time to the open pull request with your changes
