@@ -519,34 +519,43 @@ After defining the city, implement the following functions:
 
 data CultureBuilding = Church | Library deriving (Show)
 
-data Castle = Castle String deriving Show
-data Wall = Wall deriving Show
-data House = House Int deriving Show
+data House = House HouseCapacity deriving (Show)
+data DefenceBuilding 
+    = OnlyCastle String
+    | CastleWithWall String
+    deriving (Show)
+
+newtype HouseCapacity = HouseCapacity Int deriving (Show)
+mkHouseCapacity :: Int -> Maybe HouseCapacity
+mkHouseCapacity x
+    | x < 0 = Nothing
+    | x > 4 = Nothing
+    | otherwise = Just $ HouseCapacity x
 
 data City = City
-    { cityCastle :: Maybe Castle
-    , cityWall :: Maybe Wall
-    , cityCultureBuilding :: Maybe CultureBuilding
+    { defenceBuilding :: Maybe DefenceBuilding
+    , cityCultureBuilding :: CultureBuilding
     , cityHouses :: [House]
     } deriving (Show)
 
 buildCastle :: City -> String -> City
-buildCastle city name =
-    city { cityCastle = Just $ Castle name } 
+buildCastle city name = case defenceBuilding city of
+    Nothing -> city { defenceBuilding = Just $ OnlyCastle name }
+    Just (OnlyCastle _) -> city { defenceBuilding = Just $ OnlyCastle name }
+    Just (CastleWithWall _) -> city { defenceBuilding = Just $ CastleWithWall name}
 
-buildHouse :: City -> Int -> City
-buildHouse city c
-    | c > 4 = city
-    | otherwise = city { cityHouses = (House c) : cityHouses city }
+buildHouse :: City -> HouseCapacity -> City
+buildHouse city c = city { cityHouses = (House c) : cityHouses city }
 
 buildWalls :: City ->  City
 buildWalls city 
-    | haveCastle && haveEnoughPeoples && notHaveWall = city { cityWall = Just Wall }
-    | otherwise = city
+    | notHaveEnoughPeoples = city 
+    | otherwise = case defenceBuilding city of
+        Nothing -> city
+        Just (OnlyCastle c) -> city { defenceBuilding = Just $ CastleWithWall c}
+        Just (CastleWithWall _) -> city
   where 
-    haveCastle = case cityCastle city of { Just _ -> True; Nothing -> False }
-    haveEnoughPeoples = sum (map (\(House i) -> i) $ cityHouses city) > 10
-    notHaveWall = case cityWall city of { Just _ -> False; Nothing -> True }
+    notHaveEnoughPeoples = sum (map (\(House (HouseCapacity i)) -> i) $ cityHouses city) <= 10
 
 {-
 =🛡= Newtypes
@@ -1005,11 +1014,13 @@ newtype Gold = Gold Int
 instance Append Gold where
     append (Gold a) (Gold b) = Gold $ a + b
 
-instance Append ([a]) where
-    append xs ys = xs ++ ys
+instance Append [a] where
+    append = (++) 
 
 instance (Append a) => Append (Maybe a) where
     append (Just x) (Just y) = Just $ append x y
+    append x@(Just _) _ = x
+    append _ y@(Just _) = y
     append _ _ = Nothing
 
 {-
