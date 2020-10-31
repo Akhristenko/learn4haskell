@@ -486,12 +486,11 @@ Implement the Applicative instance for our 'Secret' data type from before.
 -}
 instance Applicative (Secret e) where
     pure :: a -> Secret e a
-    pure a = Reward a
+    pure = Reward
 
     (<*>) :: Secret e (a -> b) -> Secret e a -> Secret e b
-    (Reward f) <*> (Reward x) = Reward (f x)
     (Trap a) <*> _ = Trap a
-    _ <*> (Trap b) = Trap b
+    (Reward f) <*> x = fmap f x
     
 
 {- |
@@ -506,6 +505,9 @@ Implement the 'Applicative' instance for our 'List' type.
   type.
 -}
 
+append :: List a -> List a -> List a
+append Empty as = as
+append (Cons a as) bs = Cons a (as `append` bs)
 
 instance Applicative List where
     pure :: a -> List a
@@ -514,10 +516,6 @@ instance Applicative List where
     (<*>) :: List (a -> b) -> List a -> List b
     (Cons x xs) <*> yss@(Cons _ _) = 
         fmap x yss `append` (xs <*> yss)
-      where
-        append :: List a -> List a -> List a
-        append Empty as = as
-        append (Cons a as) bs = Cons a (as `append` bs)
     _ <*> _ = Empty
 
 {- |
@@ -650,9 +648,6 @@ instance Monad List where
       flatten :: List (List a) -> List a
       flatten Empty = Empty
       flatten (Cons y ys) = append y $ flatten ys
-      append :: List a -> List a -> List a
-      append Empty as = as
-      append (Cons a as) bs = Cons a (as `append` bs)
     
 
 {- |
@@ -673,9 +668,9 @@ Can you implement a monad version of AND, polymorphic over any monad?
 -}
 andM :: (Monad m) => m Bool -> m Bool -> m Bool
 andM ma mb = ma >>= \a -> 
-  if not a 
-  then pure False
-  else mb
+  if a 
+  then mb 
+  else pure False
 
 {- |
 =🐉= Task 9*: Final Dungeon Boss
@@ -734,7 +729,7 @@ reverseTree (Node a left right) = Node a (reverseTree right) (reverseTree left)
 
 toList :: BTree a -> [a]
 toList EmptyTree = []
-toList (Node a left rigth) = toList left ++ [a] ++ toList rigth
+toList (Node a left rigth) = toList left ++ (a : toList rigth)
 
 {-
 You did it! Now it is time to the open pull request with your changes
